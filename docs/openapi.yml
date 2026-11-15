@@ -1,0 +1,1280 @@
+openapi: 3.0.3
+info:
+  title: PPE Monitor API
+  version: 0.1.0
+paths:
+  /api/cameras/:
+    get:
+      operationId: cameras_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - cameras
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCameraList'
+          description: ''
+    post:
+      operationId: cameras_create
+      tags:
+      - cameras
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Camera'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Camera'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Camera'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Camera'
+          description: ''
+  /api/cameras/{id}/:
+    get:
+      operationId: cameras_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this camera.
+        required: true
+      tags:
+      - cameras
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Camera'
+          description: ''
+    put:
+      operationId: cameras_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this camera.
+        required: true
+      tags:
+      - cameras
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Camera'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Camera'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Camera'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Camera'
+          description: ''
+    patch:
+      operationId: cameras_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this camera.
+        required: true
+      tags:
+      - cameras
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCamera'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCamera'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCamera'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Camera'
+          description: ''
+    delete:
+      operationId: cameras_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this camera.
+        required: true
+      tags:
+      - cameras
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/ppe-rules/:
+    get:
+      operationId: ppe_rules_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - ppe-rules
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPPERuleList'
+          description: ''
+    post:
+      operationId: ppe_rules_create
+      tags:
+      - ppe-rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PPERule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PPERule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PPERule'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PPERule'
+          description: ''
+  /api/ppe-rules/{id}/:
+    get:
+      operationId: ppe_rules_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ppe rule.
+        required: true
+      tags:
+      - ppe-rules
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PPERule'
+          description: ''
+    put:
+      operationId: ppe_rules_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ppe rule.
+        required: true
+      tags:
+      - ppe-rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PPERule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PPERule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PPERule'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PPERule'
+          description: ''
+    patch:
+      operationId: ppe_rules_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ppe rule.
+        required: true
+      tags:
+      - ppe-rules
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPPERule'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPPERule'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPPERule'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PPERule'
+          description: ''
+    delete:
+      operationId: ppe_rules_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ppe rule.
+        required: true
+      tags:
+      - ppe-rules
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - ht
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/videos/:
+    get:
+      operationId: videos_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - videos
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedVideoFileList'
+          description: ''
+    post:
+      operationId: videos_create
+      tags:
+      - videos
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VideoFile'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VideoFile'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoFile'
+          description: ''
+  /api/videos/{id}/:
+    get:
+      operationId: videos_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this video file.
+        required: true
+      tags:
+      - videos
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoFile'
+          description: ''
+    delete:
+      operationId: videos_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this video file.
+        required: true
+      tags:
+      - videos
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+  /api/violations/:
+    get:
+      operationId: violations_list
+      summary: Лента нарушений
+      parameters:
+      - in: query
+        name: camera
+        schema:
+          type: integer
+      - in: query
+        name: code
+        schema:
+          type: string
+        description: Например NO_HELMET
+      - in: query
+        name: date_from
+        schema:
+          type: string
+        description: ISO datetime
+      - in: query
+        name: date_to
+        schema:
+          type: string
+        description: ISO datetime
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: video
+        schema:
+          type: integer
+      - in: query
+        name: zone
+        schema:
+          type: integer
+      tags:
+      - violations
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedViolationList'
+          description: ''
+    post:
+      operationId: violations_create
+      description: 'Одно событие на человека и кадр (можно прислать список событий).
+        Если такое же нарушение (камера, зона, те же коды) уже идёт и пауза меньше
+        5 секунд, оно продлевается (200), иначе создаётся новое (201). Для списка:
+        201 всё принято, 207 часть отклонена, 400 всё отклонено.'
+      summary: Приём нарушения от ML
+      tags:
+      - violations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ViolationEvent'
+            examples:
+              ПримерОтML:
+                value:
+                  camera_id: 1
+                  zone_id: 1
+                  video_id: 5
+                  frame_number: 120
+                  timestamp: '2026-11-18T12:00:03+03:00'
+                  bbox:
+                  - 100
+                  - 80
+                  - 320
+                  - 540
+                  confidence: 0.91
+                  violations:
+                  - NO_HELMET
+                summary: Пример от ML
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ViolationEvent'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ViolationEvent'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Violation'
+          description: ''
+  /api/violations/{id}/:
+    get:
+      operationId: violations_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this violation.
+        required: true
+      tags:
+      - violations
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Violation'
+          description: ''
+  /api/zones/:
+    get:
+      operationId: zones_list
+      summary: Список зон с правилами СИЗ
+      parameters:
+      - in: query
+        name: camera
+        schema:
+          type: integer
+        description: Фильтр по камере
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - zones
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedZoneList'
+          description: ''
+    post:
+      operationId: zones_create
+      tags:
+      - zones
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Zone'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Zone'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Zone'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+          description: ''
+  /api/zones/{id}/:
+    get:
+      operationId: zones_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this zone.
+        required: true
+      tags:
+      - zones
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+          description: ''
+    put:
+      operationId: zones_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this zone.
+        required: true
+      tags:
+      - zones
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Zone'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Zone'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Zone'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+          description: ''
+    patch:
+      operationId: zones_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this zone.
+        required: true
+      tags:
+      - zones
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedZone'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedZone'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedZone'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+          description: ''
+    delete:
+      operationId: zones_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this zone.
+        required: true
+      tags:
+      - zones
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    Camera:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        source_type:
+          $ref: '#/components/schemas/SourceTypeEnum'
+        source_uri:
+          type: string
+          maxLength: 500
+        location:
+          type: string
+          maxLength: 200
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+    CodeEnum:
+      enum:
+      - NO_HELMET
+      - NO_VEST
+      - NO_GLOVES
+      type: string
+      description: |-
+        * `NO_HELMET` - Нет каски
+        * `NO_VEST` - Нет жилета
+        * `NO_GLOVES` - Нет перчаток
+    PPERule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        code:
+          $ref: '#/components/schemas/CodeEnum'
+        is_active:
+          type: boolean
+        zone:
+          type: integer
+      required:
+      - code
+      - id
+      - zone
+    PaginatedCameraList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Camera'
+    PaginatedPPERuleList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PPERule'
+    PaginatedVideoFileList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VideoFile'
+    PaginatedViolationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Violation'
+    PaginatedZoneList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Zone'
+    PatchedCamera:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        source_type:
+          $ref: '#/components/schemas/SourceTypeEnum'
+        source_uri:
+          type: string
+          maxLength: 500
+        location:
+          type: string
+          maxLength: 200
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPPERule:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        code:
+          $ref: '#/components/schemas/CodeEnum'
+        is_active:
+          type: boolean
+        zone:
+          type: integer
+    PatchedZone:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/PPERule'
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        is_active:
+          type: boolean
+        camera:
+          type: integer
+    SourceTypeEnum:
+      enum:
+      - file
+      - rtp
+      type: string
+      description: |-
+        * `file` - Видеофайл
+        * `rtp` - RTP-поток
+    VideoFile:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        file:
+          type: string
+          format: uri
+        original_name:
+          type: string
+          readOnly: true
+        size_bytes:
+          type: integer
+          readOnly: true
+        duration_sec:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
+        fps:
+          type: number
+          format: double
+          readOnly: true
+          nullable: true
+        frame_count:
+          type: integer
+          readOnly: true
+          nullable: true
+        width:
+          type: integer
+          readOnly: true
+          nullable: true
+        height:
+          type: integer
+          readOnly: true
+          nullable: true
+        uploaded_at:
+          type: string
+          format: date-time
+          readOnly: true
+        camera:
+          type: integer
+          nullable: true
+      required:
+      - duration_sec
+      - file
+      - fps
+      - frame_count
+      - height
+      - id
+      - original_name
+      - size_bytes
+      - uploaded_at
+      - width
+    Violation:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        missing_ppe: {}
+        frame_number:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        last_frame_number:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        frames_count:
+          type: integer
+          maximum: 2147483647
+          minimum: -2147483648
+        bbox_x1:
+          type: number
+          format: double
+        bbox_y1:
+          type: number
+          format: double
+        bbox_x2:
+          type: number
+          format: double
+        bbox_y2:
+          type: number
+          format: double
+        confidence:
+          type: number
+          format: double
+        external_id:
+          type: string
+          maxLength: 100
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        camera:
+          type: integer
+        zone:
+          type: integer
+          nullable: true
+        video:
+          type: integer
+          nullable: true
+      required:
+      - bbox_x1
+      - bbox_x2
+      - bbox_y1
+      - bbox_y2
+      - camera
+      - confidence
+      - created_at
+      - id
+      - timestamp
+    ViolationEvent:
+      type: object
+      description: Что присылает ML. Одно событие = один человек на одном кадре.
+      properties:
+        camera_id:
+          type: integer
+        zone_id:
+          type: integer
+          nullable: true
+        video_id:
+          type: integer
+          nullable: true
+        frame_number:
+          type: integer
+          minimum: 0
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+        bbox:
+          type: array
+          items:
+            type: number
+            format: double
+            minimum: 0
+          maxItems: 4
+          minItems: 4
+        confidence:
+          type: number
+          format: double
+          maximum: 1
+          minimum: 0
+        violations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ViolationsEnum'
+          minItems: 1
+      required:
+      - bbox
+      - camera_id
+      - confidence
+      - violations
+    ViolationsEnum:
+      enum:
+      - NO_HELMET
+      - NO_VEST
+      - NO_GLOVES
+      type: string
+      description: |-
+        * `NO_HELMET` - Нет каски
+        * `NO_VEST` - Нет жилета
+        * `NO_GLOVES` - Нет перчаток
+    Zone:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/PPERule'
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        is_active:
+          type: boolean
+        camera:
+          type: integer
+      required:
+      - camera
+      - id
+      - name
+      - rules
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

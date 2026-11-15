@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Camera, Zone, VideoFile, Violation
+from .models import Camera, Zone, PPERule, VideoFile, Violation
 from .services import extract_video_metadata
 
 
@@ -9,7 +9,15 @@ class CameraSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class PPERuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PPERule
+        fields = "__all__"
+
+
 class ZoneSerializer(serializers.ModelSerializer):
+    rules = PPERuleSerializer(many=True, read_only=True)
+
     class Meta:
         model = Zone
         fields = "__all__"
@@ -45,20 +53,46 @@ class ViolationSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class DetectionSerializer(serializers.Serializer):
-    bbox = serializers.ListField(child=serializers.FloatField(), min_length=4, max_length=4)
-    confidence = serializers.FloatField()
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # в JSON ключ "class" (зарезервированное слово в Python)
-        self.fields["class"] = serializers.CharField()
-
-
-class IngestSerializer(serializers.Serializer):
+class ViolationEventSerializer(serializers.Serializer):
+    """Что присылает ML. Одно событие = один человек на одном кадре."""
     camera_id = serializers.IntegerField()
-    video_id = serializers.IntegerField(required=False, allow_null=True)
     zone_id = serializers.IntegerField(required=False, allow_null=True)
-    frame_number = serializers.IntegerField(required=False, allow_null=True)
+    video_id = serializers.IntegerField(required=False, allow_null=True)
+    frame_number = serializers.IntegerField(min_value=0, required=False, allow_null=True)
     timestamp = serializers.DateTimeField(required=False)
-    detections = DetectionSerializer(many=True)
+    bbox = serializers.ListField(child=serializers.FloatField(min_value=0),
+                                 min_length=4, max_length=4)
+    confidence = serializers.FloatField(min_value=0, max_value=1)
+    violations = serializers.ListField(
+        child=serializers.ChoiceField(choices=PPERule.Code.choices), min_length=1)
+
+    def validate_bbox(self, v):
+        x1, y1, x2, y2 = v
+        if x2 <= x1 or y2 <= y1:
+            raise serializers.ValidationError("bbox = [x1, y1, x2, y2], где x2 > x1 и y2 > y1")
+        return v
+
+    def validate(self, attrs):
+        camera = Camera.objects.filter(pk=attrs["camera_id"]).first()
+        if not camera:
+            raise serializers.ValidationError({"camera_id": "Камера не найдена"})
+
+        zones = Zone.objects.filter(camera=camera, is_active=True)
+        if attrs.get("zone_id"):
+            zone = zones.filter(pk=attrs["zone_id"]).first()
+            if not zone:
+                raise serializers.ValidationError({"zone_id": "У этой камеры нет такой активной зоны"})
+        else:
+            zone = zones.first()
+            if not zone:
+                raise serializers.ValidationError({"camera_id": "У камеры нет активной зоны"})
+
+        allowed = set(zone.rules.filter(is_active=True).values_list("code", flat=True))
+        unknown = set(attrs["violations"]) - allowed
+        if unknown:
+            raise serializers.ValidationError(
+                {"violations": f"Зона не требует: {sorted(unknown)}. Разрешены: {sorted(allowed)}"})
+
+        attrs["camera"] = camera
+        attrs["zone"] = zone
+        return attrs
