@@ -158,3 +158,4 @@ SPECTACULAR_SETTINGS = {"TITLE": "PPE Monitor API", "VERSION": "0.1.0"}
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 TIME_ZONE = "Europe/Moscow"
+ML_API_KEY = os.getenv("ML_API_KEY", "")

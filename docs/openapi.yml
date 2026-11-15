@@ -6,6 +6,7 @@ paths:
   /api/cameras/:
     get:
       operationId: cameras_list
+      summary: Камеры (ml_online = ML присылал сводку за последние 3 минуты)
       parameters:
       - name: page
         required: false
@@ -466,6 +467,80 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/summaries/:
+    get:
+      operationId: summaries_list
+      summary: Сводки от ML (сколько людей проверено / нарушителей)
+      parameters:
+      - in: query
+        name: camera
+        schema:
+          type: integer
+      - in: query
+        name: date_from
+        schema:
+          type: string
+        description: ISO datetime
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - summaries
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCameraSummaryList'
+          description: ''
+    post:
+      operationId: summaries_create
+      summary: Сводка от ML раз в минуту (также признак «ML работает»)
+      parameters:
+      - in: header
+        name: X-API-Key
+        schema:
+          type: string
+        description: Ключ ML-модуля (обязателен, если на сервере задан ML_API_KEY)
+      tags:
+      - summaries
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CameraSummary'
+            examples:
+              Пример:
+                value:
+                  camera_id: 1
+                  timestamp: '2026-11-20T12:01:00+03:00'
+                  people_checked: 12
+                  violators: 2
+                  model_version: yolov8n-ppe-0.3
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CameraSummary'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CameraSummary'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CameraSummary'
+          description: ''
   /api/videos/:
     get:
       operationId: videos_list
@@ -585,6 +660,11 @@ paths:
         schema:
           type: integer
       - in: query
+        name: status
+        schema:
+          type: string
+        description: new / confirmed / false_positive
+      - in: query
         name: video
         schema:
           type: integer
@@ -607,11 +687,17 @@ paths:
           description: ''
     post:
       operationId: violations_create
-      description: 'Одно событие на человека и кадр (можно прислать список событий).
-        Если такое же нарушение (камера, зона, те же коды) уже идёт и пауза меньше
-        5 секунд, оно продлевается (200), иначе создаётся новое (201). Для списка:
-        201 всё принято, 207 часть отклонена, 400 всё отклонено.'
-      summary: Приём нарушения от ML
+      description: 'Одно событие = один человек на кадре, можно прислать список событий.
+        bbox это рамка человека. Склейка: камера + зона + track_id + код, пауза больше
+        5 секунд начинает новый инцидент. Повтор с тем же event_id не создаёт дублей.
+        Список: 201 всё принято, 207 часть отклонена, 400 всё отклонено.'
+      summary: Приём нарушений от ML
+      parameters:
+      - in: header
+        name: X-API-Key
+        schema:
+          type: string
+        description: Ключ ML-модуля (обязателен, если на сервере задан ML_API_KEY)
       tags:
       - violations
       requestBody:
@@ -622,19 +708,26 @@ paths:
             examples:
               ПримерОтML:
                 value:
+                  event_id: run42-t7-f120
                   camera_id: 1
                   zone_id: 1
                   video_id: 5
+                  track_id: 7
                   frame_number: 120
-                  timestamp: '2026-11-18T12:00:03+03:00'
+                  timestamp: '2026-11-20T12:00:03+03:00'
+                  frame_width: 1280
+                  frame_height: 720
+                  model_version: yolov8n-ppe-0.3
                   bbox:
-                  - 100
-                  - 80
-                  - 320
-                  - 540
-                  confidence: 0.91
+                  - 185.2
+                  - 40.1
+                  - 410.7
+                  - 520.3
                   violations:
-                  - NO_HELMET
+                  - code: NO_HELMET
+                    confidence: 0.91
+                  - code: NO_VEST
+                    confidence: 0.84
                 summary: Пример от ML
           application/x-www-form-urlencoded:
             schema:
@@ -646,7 +739,6 @@ paths:
       security:
       - cookieAuth: []
       - basicAuth: []
-      - {}
       responses:
         '201':
           content:
@@ -676,6 +768,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Violation'
+          description: ''
+    patch:
+      operationId: violations_partial_update
+      summary: 'Сменить статус: new / confirmed / false_positive'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this violation.
+        required: true
+      tags:
+      - violations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedViolationStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedViolationStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedViolationStatus'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViolationStatus'
           description: ''
   /api/zones/:
     get:
@@ -849,6 +975,13 @@ components:
         id:
           type: integer
           readOnly: true
+        ml_last_seen:
+          type: string
+          format: date-time
+          readOnly: true
+        ml_online:
+          type: boolean
+          readOnly: true
         name:
           type: string
           maxLength: 100
@@ -869,7 +1002,39 @@ components:
       required:
       - created_at
       - id
+      - ml_last_seen
+      - ml_online
       - name
+    CameraSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+        people_checked:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        violators:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        model_version:
+          type: string
+          maxLength: 50
+        camera:
+          type: integer
+        zone:
+          type: integer
+          nullable: true
+      required:
+      - camera
+      - id
+      - people_checked
+      - violators
     CodeEnum:
       enum:
       - NO_HELMET
@@ -919,6 +1084,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Camera'
+    PaginatedCameraSummaryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CameraSummary'
     PaginatedPPERuleList:
       type: object
       required:
@@ -1017,6 +1205,13 @@ components:
         id:
           type: integer
           readOnly: true
+        ml_last_seen:
+          type: string
+          format: date-time
+          readOnly: true
+        ml_online:
+          type: boolean
+          readOnly: true
         name:
           type: string
           maxLength: 100
@@ -1046,6 +1241,11 @@ components:
           type: boolean
         zone:
           type: integer
+    PatchedViolationStatus:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/StatusEnum'
     PatchedZone:
       type: object
       properties:
@@ -1072,6 +1272,16 @@ components:
       description: |-
         * `file` - Видеофайл
         * `rtp` - RTP-поток
+    StatusEnum:
+      enum:
+      - new
+      - confirmed
+      - false_positive
+      type: string
+      description: |-
+        * `new` - Новая
+        * `confirmed` - Подтверждена
+        * `false_positive` - Ложное срабатывание
     VideoFile:
       type: object
       properties:
@@ -1133,7 +1343,28 @@ components:
         id:
           type: integer
           readOnly: true
-        missing_ppe: {}
+        code:
+          $ref: '#/components/schemas/CodeEnum'
+        track_id:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        status:
+          $ref: '#/components/schemas/StatusEnum'
+        model_version:
+          type: string
+          maxLength: 50
+        frame_width:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
+        frame_height:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          nullable: true
         frame_number:
           type: integer
           maximum: 2147483647
@@ -1185,12 +1416,16 @@ components:
         video:
           type: integer
           nullable: true
+        employee:
+          type: integer
+          nullable: true
       required:
       - bbox_x1
       - bbox_x2
       - bbox_y1
       - bbox_y2
       - camera
+      - code
       - confidence
       - created_at
       - id
@@ -1199,6 +1434,10 @@ components:
       type: object
       description: Что присылает ML. Одно событие = один человек на одном кадре.
       properties:
+        event_id:
+          type: string
+          nullable: true
+          maxLength: 100
         camera_id:
           type: integer
         zone_id:
@@ -1207,6 +1446,10 @@ components:
         video_id:
           type: integer
           nullable: true
+        track_id:
+          type: integer
+          minimum: 0
+          nullable: true
         frame_number:
           type: integer
           minimum: 0
@@ -1214,6 +1457,17 @@ components:
         timestamp:
           type: string
           format: date-time
+        frame_width:
+          type: integer
+          minimum: 1
+          nullable: true
+        frame_height:
+          type: integer
+          minimum: 1
+          nullable: true
+        model_version:
+          type: string
+          maxLength: 50
         bbox:
           type: array
           items:
@@ -1222,31 +1476,32 @@ components:
             minimum: 0
           maxItems: 4
           minItems: 4
+        violations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ViolationItem'
+      required:
+      - bbox
+      - camera_id
+      - violations
+    ViolationItem:
+      type: object
+      properties:
+        code:
+          $ref: '#/components/schemas/CodeEnum'
         confidence:
           type: number
           format: double
           maximum: 1
           minimum: 0
-        violations:
-          type: array
-          items:
-            $ref: '#/components/schemas/ViolationsEnum'
-          minItems: 1
       required:
-      - bbox
-      - camera_id
+      - code
       - confidence
-      - violations
-    ViolationsEnum:
-      enum:
-      - NO_HELMET
-      - NO_VEST
-      - NO_GLOVES
-      type: string
-      description: |-
-        * `NO_HELMET` - Нет каски
-        * `NO_VEST` - Нет жилета
-        * `NO_GLOVES` - Нет перчаток
+    ViolationStatus:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/StatusEnum'
     Zone:
       type: object
       properties:
