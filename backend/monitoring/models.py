@@ -63,6 +63,13 @@ class VideoFile(models.Model):
     def __str__(self):
         return self.original_name
 
+class Employee(models.Model):
+    """Сотрудник. external_id связывает с внешней системой (СКУД)."""
+    external_id = models.CharField(max_length=100, unique=True)
+    full_name = models.CharField(max_length=200)
+    position = models.CharField(max_length=200, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 class Employee(models.Model):
     """Сотрудник. external_id связывает с внешней системой (СКУД)."""
