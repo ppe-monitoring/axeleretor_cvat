@@ -4,8 +4,9 @@ export default function TrendChart({ data, min = 85, max = 100, width = 640, hei
   const x = (i) => pad.l + (i * (width - pad.l - pad.r)) / (data.length - 1)
   const y = (v) => pad.t + ((max - v) * (height - pad.t - pad.b)) / (max - min)
   const points = data.map((d, i) => `${x(i)},${y(d.v)}`).join(' ')
+  if (data.length < 2) return null
   const low = data.reduce((a, b) => (b.v < a.v ? b : a))
-  const ticks = [100, 95, 90, 85]
+  const ticks = Array.from({ length: Math.floor((max - min) / 5) + 1 }, (_, i) => max - i * 5)
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img"
