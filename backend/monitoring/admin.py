@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Camera, Zone, PPERule, VideoFile, Violation
+from .models import Camera, Zone, PPERule, VideoFile, Violation, Employee
 
 
 class PPERuleInline(admin.TabularInline):
@@ -13,5 +13,5 @@ class ZoneAdmin(admin.ModelAdmin):
 
 
 admin.site.register(PPERule)
-for m in (Camera, VideoFile, Violation):
+for m in (Camera, VideoFile, Violation, Employee):
     admin.site.register(m)
