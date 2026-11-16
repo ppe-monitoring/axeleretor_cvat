@@ -5,6 +5,7 @@ export default function AlertList({ items }) {
     <ul>
       {items.map(({ risk, title, meta }) => (
         <li key={`${title}-${meta}`} className="flex items-center gap-3 border-t border-line py-2.5 first:border-t-0">
+
           <RiskChip risk={risk} />
           <div className="flex-1">
             <p className="font-semibold">{title}</p>

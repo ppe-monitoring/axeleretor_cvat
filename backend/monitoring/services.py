@@ -1,4 +1,11 @@
+from datetime import timedelta
+
 import cv2
+from django.db import transaction
+
+from .models import ProcessedEvent, Violation
+
+GAP_SECONDS = 5  # пауза больше этого = новое нарушение
 
 
 def extract_video_metadata(path) -> dict:
@@ -19,11 +26,53 @@ def extract_video_metadata(path) -> dict:
     }
 
 
-def _center_inside(box, person) -> bool:
-    cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-    return person[0] <= cx <= person[2] and person[1] <= cy <= person[3]
+def register_event(d: dict):
+    """
+    Одно событие (человек на кадре) -> инциденты по каждому коду нарушения.
+    Возвращает None, если event_id уже обрабатывался, иначе список (violation, created).
+    Ключ склейки: камера + зона + видео + track_id + код.
+    """
+    ts = d["timestamp"]
+    x1, y1, x2, y2 = d["bbox"]
+    out = []
 
+    with transaction.atomic():
+        if d.get("event_id"):
+            _, is_new = ProcessedEvent.objects.get_or_create(event_id=d["event_id"])
+            if not is_new:
+                return None
 
-def find_missing_ppe(person_bbox, ppe_detections, required) -> list:
-    present = {d["class"] for d in ppe_detections if _center_inside(d["bbox"], person_bbox)}
-    return [r for r in required if r not in present]
+        for item in d["violations"]:
+            code, conf = item["code"], item["confidence"]
+            current = (
+                Violation.objects.select_for_update()
+                .filter(
+                    camera=d["camera"], zone=d["zone"], video_id=d.get("video_id"),
+                    track_id=d.get("track_id"), code=code,
+                    ended_at__gte=ts - timedelta(seconds=GAP_SECONDS),
+                )
+                .order_by("-ended_at")
+                .first()
+            )
+            if current:
+                current.ended_at = max(current.ended_at, ts)
+                current.timestamp = min(current.timestamp, ts)
+                current.frames_count += 1
+                current.confidence = max(current.confidence, conf)
+                current.last_frame_number = d.get("frame_number")
+                current.save(update_fields=["ended_at", "timestamp", "frames_count",
+                                            "confidence", "last_frame_number"])
+                out.append((current, False))
+                continue
+
+            v = Violation.objects.create(
+                camera=d["camera"], zone=d["zone"], video_id=d.get("video_id"),
+                track_id=d.get("track_id"), code=code,
+                model_version=d.get("model_version", ""),
+                frame_width=d.get("frame_width"), frame_height=d.get("frame_height"),
+                frame_number=d.get("frame_number"), last_frame_number=d.get("frame_number"),
+                timestamp=ts, ended_at=ts, frames_count=1,
+                bbox_x1=x1, bbox_y1=y1, bbox_x2=x2, bbox_y2=y2, confidence=conf,
+            )
+            out.append((v, True))
+    return out

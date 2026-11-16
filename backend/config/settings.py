@@ -133,6 +133,7 @@ load_dotenv(BASE_DIR.parent / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG") == "1"
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
 
 INSTALLED_APPS += ["rest_framework", "drf_spectacular", "monitoring"]
 
@@ -157,3 +158,4 @@ SPECTACULAR_SETTINGS = {"TITLE": "PPE Monitor API", "VERSION": "0.1.0"}
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 TIME_ZONE = "Europe/Moscow"
+ML_API_KEY = os.getenv("ML_API_KEY", "")
