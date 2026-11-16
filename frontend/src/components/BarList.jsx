@@ -8,7 +8,7 @@ export default function BarList({ items }) {
           <div className="h-2.5 rounded-full bg-line" role="presentation">
             <div
               className="h-2.5 rounded-full border border-ink bg-brand"
-              style={{ width: `${percent * 2}%` }}
+              style={{ width: `${percent}%` }}
             />
           </div>
           <b>{percent}%</b>
