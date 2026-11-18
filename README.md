@@ -44,23 +44,35 @@ Swagger: http://127.0.0.1:8000/api/docs/  Админка: http://127.0.0.1:8000/
 | GET | /violations/ | лента; фильтры: camera, zone, video, code, date_from, date_to |
 | POST | /violations/ | приём нарушения от ML (одно событие или список) |
 
-## Формат от ML (POST /api/violations/)
+## Формат от ML (POST /api/violations/, заголовок X-API-Key)
+Одно событие = один человек на кадре. Можно прислать список событий. `bbox` это рамка человека.
 ```json
 {
-  "camera_id": 1,
-  "zone_id": 1,
-  "video_id": 5,
-  "frame_number": 120,
-  "timestamp": "2026-11-18T12:00:03+03:00",
-  "bbox": [100, 80, 320, 540],
-  "confidence": 0.91,
-  "violations": ["NO_HELMET"]
+  "event_id": "run42-t7-f120",
+  "camera_id": 1, "zone_id": 1, "video_id": 5,
+  "track_id": 7, "frame_number": 120,
+  "timestamp": "2026-11-20T12:00:03+03:00",
+  "frame_width": 1280, "frame_height": 720,
+  "model_version": "yolov8n-ppe-0.3",
+  "bbox": [185.2, 40.1, 410.7, 520.3],
+  "violations": [
+    {"code": "NO_HELMET", "confidence": 0.91},
+    {"code": "NO_VEST", "confidence": 0.84}
+  ]
 }
 ```
-- `bbox`: рамка человека `[x1, y1, x2, y2]`. `zone_id`, `video_id` необязательны.
-- Коды: NO_HELMET, NO_VEST, NO_GLOVES. Код должен быть включён в правила зоны.
-- Если нарушение продолжается (та же камера, зона и коды, пауза меньше 5 секунд), запись продлевается: ответ 200. Иначе создаётся новая: 201.
-- Можно отправить список событий. Ответ 201 (всё принято), 207 (часть отклонена), 400 (всё отклонено). Ошибки приходят с номером события.
+- Обязательны `camera_id`, `bbox`, `violations`. Коды: NO_HELMET, NO_VEST, NO_GLOVES (должны быть в правилах зоны).
+- Инцидент = камера + зона + track_id + код. Пауза больше 5 секунд начинает новый. Уверенность хранится максимальная.
+- Повтор с тем же `event_id` не создаёт дублей. События пачки сортируются по `timestamp`.
+- `timestamp` для видеофайлов: время начала + кадр / FPS (в видео, а не время обработки).
+
+## Сводка от ML (POST /api/summaries/, раз в минуту на камеру)
+```json
+{"camera": 1, "timestamp": "2026-11-20T12:01:00+03:00", "people_checked": 12, "violators": 2}
+```
+Если сводок нет 3 минуты, `GET /api/cameras/` покажет `ml_online: false` (на фронте «нет данных»).
+
+Статус записи: `PATCH /api/violations/{id}/` с `{"status": "confirmed"}` (new / confirmed / false_positive).
 
 ## Загрузка видео из консоли
 ```bash
