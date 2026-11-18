@@ -7,3 +7,5 @@ logs/
 *.mov
 __pycache__/
 .venv/
+dataset/
+runs/

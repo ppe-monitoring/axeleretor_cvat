@@ -9,8 +9,8 @@
 
 Запуск:
     python detect.py --source data/videos/light_close.mp4
-    python detect.py --source data/videos          (все видео из папки)
-    python detect.py --source data/videos/a.mp4 --show   (показывать окно)
+    python detect.py --source data/videos(все видео из папки)
+    python detect.py --source data/videos/a.mp4 --show(показывать окно)
 """
 import argparse
 import json
@@ -86,11 +86,10 @@ def process_video(video_path, model, cfg, show=False):
             if not ok:
                 break
 
-            # Нейросеть смотрит на кадр. classes=[0] значит "только люди".
+            # Нейросеть смотрит на кадр. Убрали classes=[0], чтобы искать все классы СИЗ.
             t0 = time.perf_counter()
             result = model.predict(
                 frame,
-                classes=[0],
                 conf=cfg["conf"],
                 iou=cfg["iou"],
                 imgsz=cfg["imgsz"],
@@ -119,7 +118,27 @@ def process_video(video_path, model, cfg, show=False):
             jf.write(json.dumps(record, ensure_ascii=False) + "\n")
 
             # Рисуем рамки и сохраняем кадр.
-            annotated = result.plot()
+            # Рисуем рамки вручную (обходим баг с plot)
+            annotated = frame.copy()
+            for box in result.boxes:
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                cls_id = int(box.cls[0])
+                conf = float(box.conf[0])
+
+                # Цвета для разных классов (BGR)
+                color = (0, 255, 0)  # Зеленый по умолчанию
+                if cls_id in [1, 4, 5, 6, 7, 10]:  # Нарушения (NO-Hardhat и т.д.)
+                    color = (0, 0, 255)  # Красный
+                elif cls_id in [2, 8, 9]:  # СИЗ (Hardhat, Vest)
+                    color = (255, 0, 0)  # Синий
+
+                # Рисуем прямоугольник
+                cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
+
+                # Пишем текст (только на английском, чтобы не было кракозябр)
+                label = f"{model.names[cls_id]} {conf:.2f}"
+                cv2.putText(annotated, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
             writer.write(annotated)
 
             if show:
@@ -142,7 +161,7 @@ def process_video(video_path, model, cfg, show=False):
 
     logging.info(
         "%s | кадров: %d из %d | средний FPS: %.1f | инференс: %.1f мс/кадр | "
-        "найдено людей (всего): %d",
+        "найдено объектов (всего): %d",
         video_path.name, frame_id, expected_frames, avg_fps, ms_per_frame, total_people,
     )
     if expected_frames and frame_id < expected_frames:
@@ -153,7 +172,7 @@ def process_video(video_path, model, cfg, show=False):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Поиск людей на видео (YOLOv8n)")
+    parser = argparse.ArgumentParser(description="Поиск людей и СИЗ на видео (YOLOv8)")
     parser.add_argument("--source", required=True, help="видеофайл или папка с видео")
     parser.add_argument("--config", default="config.yaml", help="файл настроек")
     parser.add_argument("--show", action="store_true", help="показывать окно с видео")
