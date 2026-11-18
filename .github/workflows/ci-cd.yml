@@ -1,0 +1,166 @@
+name: CI/CD
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  verify:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BACKEND_IMAGE: ppe-backend:${{ github.sha }}
+      FRONTEND_IMAGE: ppe-frontend:${{ github.sha }}
+      DB_PASSWORD: ci-only-db-password
+      SECRET_KEY: ci-only-django-secret
+      ML_API_KEY: ci-only-ml-key
+      STAGING_HTTP_PORT: '18080'
+    steps:
+      - uses: actions/checkout@9f698171ed81b15d1823a05fc7211befd50c8ae0 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Build Django and React images
+        run: |
+          docker build --target staging --tag "$BACKEND_IMAGE" ./backend
+          docker build --tag "$FRONTEND_IMAGE" ./frontend
+
+      - name: Start an isolated staging stack
+        run: docker compose -p ppe-ci -f compose.staging.yml up --wait --wait-timeout 120
+
+      - name: Run Django tests against PostgreSQL
+        run: docker compose -p ppe-ci -f compose.staging.yml exec -T backend python manage.py test
+
+      - name: Check React, Django API and admin static files over HTTP
+        run: |
+          base_url="http://127.0.0.1:$STAGING_HTTP_PORT"
+          curl --fail --silent --show-error "$base_url/" | grep -F 'id="root"'
+          curl --fail --silent --show-error "$base_url/api/cameras/" | jq -e '.results | type == "array"'
+          curl --fail --silent --show-error --output /dev/null "$base_url/admin/login/"
+          curl --fail --silent --show-error --output /dev/null "$base_url/static/admin/css/base.css"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose -p ppe-ci -f compose.staging.yml logs --tail=100
+
+      - name: Remove the temporary CI stack
+        if: always()
+        run: docker compose -p ppe-ci -f compose.staging.yml down --volumes
+
+      - name: Package the verified images and Compose file
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.STAGING_ENABLED == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/staging"
+          cp compose.staging.yml "$RUNNER_TEMP/staging/"
+          docker image save "$BACKEND_IMAGE" "$FRONTEND_IMAGE" | gzip -1 > "$RUNNER_TEMP/staging/images.tar.gz"
+
+      - name: Pass the release to the deployment job
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.STAGING_ENABLED == 'true'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: staging-release
+          path: ${{ runner.temp }}/staging/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+          overwrite: true
+
+  deploy:
+    name: Deploy to staging
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.STAGING_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    concurrency:
+      group: ppe-staging
+      cancel-in-progress: false
+    steps:
+      - name: Check that this commit is still the tip of main
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          if [[ "$GITHUB_SHA" == "$latest_sha" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping deployment because main has advanced." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        if: steps.latest.outputs.current == 'true'
+        with:
+          name: staging-release
+          path: ${{ runner.temp }}/staging
+
+      - name: Transfer the release and wait for the server to become healthy
+        if: steps.latest.outputs.current == 'true'
+        env:
+          SSH_HOST: ${{ vars.STAGING_SSH_HOST }}
+          SSH_USER: ${{ vars.STAGING_SSH_USER }}
+          SSH_PORT: ${{ vars.STAGING_SSH_PORT || '22' }}
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+        run: |
+          : "${SSH_PRIVATE_KEY:?Set the STAGING_SSH_PRIVATE_KEY secret}"
+          : "${SSH_KNOWN_HOSTS:?Set the STAGING_SSH_KNOWN_HOSTS secret}"
+          if [[ ! "$SSH_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ || ! "$SSH_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ || ! "$SSH_PORT" =~ ^[0-9]+$ ]]; then
+            echo "::error::Set valid STAGING_SSH_HOST, STAGING_SSH_USER and STAGING_SSH_PORT variables in the staging environment."
+            exit 1
+          fi
+
+          umask 077
+          ssh_dir=$(mktemp -d)
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$ssh_dir/key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" | tr -d '\r' > "$ssh_dir/known_hosts"
+          ssh_options=(
+            -i "$ssh_dir/key"
+            -o "Port=$SSH_PORT"
+            -o "UserKnownHostsFile=$ssh_dir/known_hosts"
+            -o StrictHostKeyChecking=yes
+            -o IdentitiesOnly=yes
+            -o BatchMode=yes
+            -o ConnectTimeout=15
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=3
+          )
+          target="$SSH_USER@$SSH_HOST"
+          release="releases/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          printf -v prepare_release "cd ppe-staging && test -s .env && mkdir -p %q" "$release"
+          # The release path is calculated and quoted on the runner.
+          # shellcheck disable=SC2029
+          ssh "${ssh_options[@]}" "$target" "$prepare_release"
+          scp "${ssh_options[@]}" "$RUNNER_TEMP/staging/compose.staging.yml" "$target:ppe-staging/$release/"
+          ssh "${ssh_options[@]}" "$target" 'docker image load' < "$RUNNER_TEMP/staging/images.tar.gz"
+
+          printf -v activate_release "bash -se -- %q %q" "$release" "$GITHUB_SHA"
+          # shellcheck disable=SC2029
+          ssh "${ssh_options[@]}" "$target" "$activate_release" <<'REMOTE'
+          set -euo pipefail
+          umask 077
+          cd "$HOME/ppe-staging"
+          release=$1
+          sha=$2
+          printf 'BACKEND_IMAGE=ppe-backend:%s\nFRONTEND_IMAGE=ppe-frontend:%s\n' "$sha" "$sha" > "$release/images.env"
+          compose=(docker compose -p ppe-staging --env-file .env --env-file "$release/images.env" -f "$release/compose.staging.yml")
+          if ! "${compose[@]}" up --wait --wait-timeout 120; then
+            "${compose[@]}" ps
+            "${compose[@]}" logs --tail=100
+            exit 1
+          fi
+          ln -sfn "$release" current
+          echo "Healthy deployment: $sha"
+          REMOTE
+          printf 'Staging is healthy for commit %s.\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
