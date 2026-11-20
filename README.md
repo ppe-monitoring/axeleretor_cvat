@@ -2,6 +2,12 @@
 
 Система распознавания СИЗ по видеопотоку.
 
+## CI/CD и тестовый сервер
+
+GitHub Actions собирает Django и React и проверяет их на временном стенде с PostgreSQL.
+После подключения сервера успешный пуш в `main` автоматически обновляет тестовый стенд.
+[Пошаговая настройка и проверка CI/CD](docs/ci-cd.md).
+
 ## Запуск backend + PostgreSQL в Docker (рекомендуется)
 ```bash
 
@@ -80,3 +86,4 @@ python manage.py load_video path/to/video.mp4 --camera 1
 ```
 
 ER-диаграмма: `docs/er-diagram.md`
+
