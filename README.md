@@ -86,3 +86,4 @@ python manage.py load_video path/to/video.mp4 --camera 1
 ```
 
 ER-диаграмма: `docs/er-diagram.md`
+
