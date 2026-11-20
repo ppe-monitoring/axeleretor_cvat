@@ -103,7 +103,16 @@ jobs:
         with:
           name: staging-release
           path: ${{ runner.temp }}/staging
-
+#tailscale delete later
+      - name: Connect to staging over Tailscale
+        if: steps.latest.outputs.current == 'true'
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ppe-ci
+          ping: ${{ vars.STAGING_SSH_HOST }}
+#tailscale delete later
       - name: Transfer the release and wait for the server to become healthy
         if: steps.latest.outputs.current == 'true'
         env:
