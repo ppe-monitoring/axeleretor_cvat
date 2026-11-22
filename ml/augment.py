@@ -189,6 +189,10 @@ def main():
             new_stem = f"{path.stem}{SUFFIX}{k}"
             write_image(images_dir / f"{new_stem}.jpg", new_img)
             shutil.copyfile(label, labels_dir / f"{new_stem}.txt")
+            created += 1
+            used.update(names)
+            if len(preview_pairs) < args.preview:
+                preview_pairs.append((img, new_img))
 
     make_preview(preview_pairs, root / "aug_preview.jpg")
 

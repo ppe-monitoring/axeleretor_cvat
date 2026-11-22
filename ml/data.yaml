@@ -1,0 +1,17 @@
+path: C:/Users/Lenovo/PycharmProjects/axeleretor_cvat/ml/dataset
+train: train/images
+val: valid/images
+test: test/images
+
+names:
+  0: Glasses
+  1: Glove
+  2: Hardhat
+  3: Mask
+  4: NO-Glove
+  5: NO-Hardhat
+  6: NO-Mask
+  7: NO-Safety Vest
+  8: Person
+  9: Safety Vest
+  10: no_glasses
