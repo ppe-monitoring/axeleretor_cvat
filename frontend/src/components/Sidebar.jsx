@@ -1,6 +1,7 @@
 export const NAV = [
   { key: 'dashboard', label: 'Дашборд' },
   { key: 'cameras', label: 'Камеры' },
+  { key: 'manage-cameras', label: 'Управление камерами' },
   { key: 'journal', label: 'Журнал событий' },
   { key: 'employees', label: 'Сотрудники' },
   { key: 'alerts', label: 'Оповещения' },
