@@ -88,10 +88,16 @@ export const api = {
   setZoneRule: ({ zone, code, enabled, rule }) =>
     rule ? apiSend('PATCH', `/api/ppe-rules/${rule.id}/`, { is_active: enabled })
          : apiSend('POST', '/api/ppe-rules/', { zone, code, is_active: true }),
+  video: (id) => apiGet(`/api/videos/${id}/`),
+  // все нарушения с даты (для рекомендаций); до 20 страниц × 50
+  violationsSince: (date_from) => fetchAll('/api/violations/', { date_from }, 20),
   setViolationStatus: (id, status) => apiPatch(`/api/violations/${id}/`, { status }),
 }
+
 // // В dev ходим через прокси Vite (см. vite.config.js), в проде — VITE_API_URL.
 // const BASE = import.meta.env.VITE_API_URL ?? ''
+
+// const USE_MOCK = import.meta.env.VITE_USE_MOCK === '1'
 
 // export class ApiError extends Error {
 //   constructor(status, body) {
@@ -103,6 +109,7 @@ export const api = {
 
 // /** Сырой ответ DRF. Для списков это { count, next, previous, results }. */
 // export async function apiGet(path, params = {}) {
+//   if (USE_MOCK) return (await import('./mockApi')).mockGet(path, params)
 //   const qs = new URLSearchParams(
 //     Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ''),
 //   )
@@ -113,14 +120,36 @@ export const api = {
 //   return res.json()
 // }
 
-// export async function apiPatch(path, body) {
+// /** POST / PATCH / DELETE. DELETE отвечает 204 без тела. */
+// export async function apiSend(method, path, body) {
+//   if (USE_MOCK) return (await import('./mockApi')).mockSend(method, path, body)
 //   const res = await fetch(`${BASE}${path}`, {
-//     method: 'PATCH',
+//     method,
 //     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-//     body: JSON.stringify(body),
+//     body: body === undefined ? undefined : JSON.stringify(body),
 //   })
 //   if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ''))
-//   return res.json()
+//   return res.status === 204 ? null : res.json()
+// }
+// export const apiPatch = (path, body) => apiSend('PATCH', path, body)
+
+// /** Ошибка DRF { поле: ['текст'] } → { fields, message } для показа в форме. */
+// export function parseApiError(err) {
+//   if (!(err instanceof ApiError)) return { fields: {}, message: 'Нет связи с сервером' }
+//   try {
+//     const body = JSON.parse(err.body)
+//     if (body && typeof body === 'object') {
+//       const fields = {}
+//       const general = []
+//       for (const [k, v] of Object.entries(body)) {
+//         const text = [].concat(v).join(' ')
+//         if (k === 'detail' || k === 'non_field_errors') general.push(text)
+//         else fields[k] = text
+//       }
+//       return { fields, message: general.join(' ') || (Object.keys(fields).length ? 'Проверьте поля формы' : `Ошибка ${err.status}`) }
+//     }
+//   } catch { /* тело не JSON */ }
+//   return { fields: {}, message: `Ошибка сервера (${err.status})` }
 // }
 
 // /** Все страницы списка (PAGE_SIZE на бэке = 50). Для небольших справочников: камеры, зоны. */
@@ -146,5 +175,14 @@ export const api = {
 //   // нужен только count: берём первую страницу
 //   violationsCount: async (params) => (await apiGet('/api/violations/', { ...params, page: 1 })).count,
 //   // PATCH /api/violations/{id}/  { status: 'new' | 'confirmed' | 'false_positive' }
+//   // CRUD камер, зон и правил СИЗ (ModelViewSet на бэкенде)
+//   saveCamera: (id, data) => (id ? apiSend('PATCH', `/api/cameras/${id}/`, data) : apiSend('POST', '/api/cameras/', data)),
+//   deleteCamera: (id) => apiSend('DELETE', `/api/cameras/${id}/`),
+//   saveZone: (id, data) => (id ? apiSend('PATCH', `/api/zones/${id}/`, data) : apiSend('POST', '/api/zones/', data)),
+//   deleteZone: (id) => apiSend('DELETE', `/api/zones/${id}/`),
+//   // включить СИЗ: правило есть → PATCH is_active, нет → POST. Выключить: PATCH is_active=false
+//   setZoneRule: ({ zone, code, enabled, rule }) =>
+//     rule ? apiSend('PATCH', `/api/ppe-rules/${rule.id}/`, { is_active: enabled })
+//          : apiSend('POST', '/api/ppe-rules/', { zone, code, is_active: true }),
 //   setViolationStatus: (id, status) => apiPatch(`/api/violations/${id}/`, { status }),
 // }

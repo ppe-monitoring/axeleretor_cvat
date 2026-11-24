@@ -6,10 +6,12 @@ import TrendChart from '../components/TrendChart'
 import BarList from '../components/BarList'
 import AlertList from '../components/AlertList'
 import {
-  useCameras, useSummariesSince, useViolationCount, useViolationCounts, useViolations,
+  useCameras, useSummariesSince, useViolationCount, useViolationCounts, useViolations, useViolationsSince, useZones,
 } from '../api/hooks'
 import { complianceByHour, complianceRate, fmtTime } from '../api/adapters'
 import { CODES, ppeInfo } from '../data/ppeClasses'
+import RecommendationsCard from '../components/RecommendationsCard'
+import { buildRecommendations } from '../utils/recommendations'
 
 const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString() }
 const pct = (n) => (n == null ? '—' : `${n.toFixed(1).replace('.', ',')}%`)
@@ -22,6 +24,16 @@ export default function Dashboard() {
   const pending = useViolationCount({ status: 'new' })
   const recent = useViolations({ status: 'new' })
   const byCode = useViolationCounts(CODES.map((code) => ({ code, date_from: since })))
+
+  const todayViol = useViolationsSince(since)
+  const zones = useZones()
+  const ready = !!(todayViol.data && zones.data && cams.data && sums.data)
+  const recs = useMemo(
+    () => (ready
+      ? buildRecommendations({ violations: todayViol.data, cameras: cams.data, zones: zones.data, summaries: sums.data })
+      : []),
+    [ready, todayViol.data, cams.data, zones.data, sums.data],
+  )
 
   const camsById = Object.fromEntries((cams.data ?? []).map((c) => [c.id, c]))
   const online = (cams.data ?? []).filter((c) => c.ml_online).length
@@ -58,9 +70,12 @@ export default function Dashboard() {
         </Card>
         <Card title="Нарушения по типу СИЗ, сегодня"><BarList items={top} /></Card>
       </div>
-      <Card title="Новые нарушения">
-        {alerts.length ? <AlertList items={alerts} /> : <p className="text-muted">Нет новых нарушений</p>}
-      </Card>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-4">
+        <Card title="Новые нарушения">
+          {alerts.length ? <AlertList items={alerts} /> : <p className="text-muted">Нет новых нарушений</p>}
+        </Card>
+        <RecommendationsCard items={recs} loading={!ready} />
+      </div>
     </>
   )
 }
