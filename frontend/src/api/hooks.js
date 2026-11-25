@@ -68,12 +68,14 @@ export const useSetZoneRule = () => useInvalidating(api.setZoneRule, ['zones'])
 export const useVideo = (id) =>
   useQuery({ queryKey: ['video', id], queryFn: () => api.video(id), enabled: id != null, staleTime: 5 * 60_000 })
 
-export const useViolationsSince = (dateFrom) =>
+export const useViolationsSince = (dateFrom, enabled = true) =>
   useQuery({
     queryKey: ['violations-since', dateFrom],
     queryFn: () => api.violationsSince(dateFrom),
     refetchInterval: 30_000,
+    enabled,
   })
+
 // import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 // import { api } from './client'
 
@@ -140,4 +142,14 @@ export const useViolationsSince = (dateFrom) =>
 // export const useSaveZone = () => useInvalidating(({ id, data }) => api.saveZone(id, data), ['zones'])
 // export const useDeleteZone = () => useInvalidating(api.deleteZone, ['zones'])
 // export const useSetZoneRule = () => useInvalidating(api.setZoneRule, ['zones'])
+
+// export const useVideo = (id) =>
+//   useQuery({ queryKey: ['video', id], queryFn: () => api.video(id), enabled: id != null, staleTime: 5 * 60_000 })
+
+// export const useViolationsSince = (dateFrom) =>
+//   useQuery({
+//     queryKey: ['violations-since', dateFrom],
+//     queryFn: () => api.violationsSince(dateFrom),
+//     refetchInterval: 30_000,
+//   })
 
