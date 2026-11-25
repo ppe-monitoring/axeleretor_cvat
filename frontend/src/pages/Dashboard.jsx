@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import PageHeader from '../components/PageHeader'
 import KpiCard from '../components/KpiCard'
 import Card from '../components/Card'
@@ -13,6 +13,12 @@ import { CODES, ppeInfo } from '../data/ppeClasses'
 import { useAuth } from '../auth/AuthContext'
 import RecommendationsCard from '../components/RecommendationsCard'
 import { buildRecommendations } from '../utils/recommendations'
+import Button from '../components/Button'
+import BarChart from '../components/BarChart'
+import ZoneRating from '../components/ZoneRating'
+import ShiftStats from '../components/ShiftStats'
+import QualityCard from '../components/QualityCard'
+import { dayBuckets, recognitionQuality, shiftStats, weekBuckets, zoneRating } from '../utils/analytics'
 
 const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString() }
 const pct = (n) => (n == null ? '—' : `${n.toFixed(1).replace('.', ',')}%`)
@@ -37,6 +43,25 @@ export default function Dashboard() {
       : []),
     [ready, todayViol.data, cams.data, zones.data, sums.data],
   )
+
+  // --- аналитика за 7 дней: рейтинг зон, смены, качество (одна выгрузка нарушений) ---
+  const weekStart = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - 6); return d.toISOString() }, [])
+  const week = useViolationsSince(weekStart)
+  const weekTotal = useViolationCount({ date_from: weekStart })
+  const truncated = !!(week.data && weekTotal.data != null && weekTotal.data > week.data.length)
+  const rating = useMemo(
+    () => (week.data && zones.data && cams.data ? zoneRating(week.data, zones.data, cams.data) : null),
+    [week.data, zones.data, cams.data],
+  )
+  const shifts = useMemo(() => (week.data ? shiftStats(week.data, 7, sums.data ?? []) : null), [week.data, sums.data])
+  const quality = useMemo(() => (week.data ? recognitionQuality(week.data) : null), [week.data])
+
+  // --- график нарушений по дням / неделям: по одному запросу count на столбец ---
+  const [mode, setMode] = useState('days')
+  const buckets = useMemo(() => (mode === 'days' ? dayBuckets(14) : weekBuckets(8)), [mode])
+  const bucketCounts = useViolationCounts(buckets.map((b) => ({ date_from: b.from, date_to: b.to })))
+  const chartData = buckets.map((b, i) => ({ label: b.label, value: bucketCounts[i]?.data ?? 0 }))
+  const chartLoading = bucketCounts.some((q) => q.isPending)
 
   const camsById = Object.fromEntries((cams.data ?? []).map((c) => [c.id, c]))
   const online = (cams.data ?? []).filter((c) => c.ml_online).length
@@ -79,10 +104,40 @@ export default function Dashboard() {
         </Card>
         {showRecs && <RecommendationsCard items={recs} loading={!ready} />}
       </div>
+
+      <Card title="Нарушения по дням и неделям">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Button variant={mode === 'days' ? 'primary' : 'secondary'} aria-pressed={mode === 'days'} onClick={() => setMode('days')}>
+            По дням (14)
+          </Button>
+          <Button variant={mode === 'weeks' ? 'primary' : 'secondary'} aria-pressed={mode === 'weeks'} onClick={() => setMode('weeks')}>
+            По неделям (8)
+          </Button>
+          {chartLoading && <span className="text-[13px] text-muted">Загрузка…</span>}
+        </div>
+        <BarChart data={chartData}
+                  ariaLabel={mode === 'days' ? 'Нарушения по дням за 14 дней' : 'Нарушения по неделям за 8 недель'} />
+        {mode === 'weeks' && (
+          <p className="text-[13px] text-muted">Подпись — понедельник недели. Последняя неделя ещё не закончена.</p>
+        )}
+      </Card>
+
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(340px,1fr))] gap-4">
+        <Card title="Проблемные зоны · 7 дней"><ZoneRating items={rating} loading={!rating} /></Card>
+        <Card title="Смены · 7 дней"><ShiftStats rows={shifts} loading={!shifts} /></Card>
+      </div>
+
+      <Card title="Качество распознавания · 7 дней">
+        <QualityCard quality={quality} loading={!week.data} />
+      </Card>
+      {truncated && (
+        <p className="text-[13px] text-muted">
+          Показатели за 7 дней посчитаны по последним {week.data.length} из {weekTotal.data} нарушений (лимит выгрузки).
+        </p>
+      )}
     </>
   )
 }
-
 
 // import { useMemo } from 'react'
 // import PageHeader from '../components/PageHeader'
@@ -96,6 +151,7 @@ export default function Dashboard() {
 // } from '../api/hooks'
 // import { complianceByHour, complianceRate, fmtTime } from '../api/adapters'
 // import { CODES, ppeInfo } from '../data/ppeClasses'
+// import { useAuth } from '../auth/AuthContext'
 // import RecommendationsCard from '../components/RecommendationsCard'
 // import { buildRecommendations } from '../utils/recommendations'
 
@@ -103,6 +159,8 @@ export default function Dashboard() {
 // const pct = (n) => (n == null ? '—' : `${n.toFixed(1).replace('.', ',')}%`)
 
 // export default function Dashboard() {
+//   const { can } = useAuth()
+//   const showRecs = can('recommendations.view')
 //   const since = useMemo(startOfToday, [])
 //   const cams = useCameras()
 //   const sums = useSummariesSince(since)
@@ -111,7 +169,7 @@ export default function Dashboard() {
 //   const recent = useViolations({ status: 'new' })
 //   const byCode = useViolationCounts(CODES.map((code) => ({ code, date_from: since })))
 
-//   const todayViol = useViolationsSince(since)
+//   const todayViol = useViolationsSince(since, showRecs)
 //   const zones = useZones()
 //   const ready = !!(todayViol.data && zones.data && cams.data && sums.data)
 //   const recs = useMemo(
@@ -160,8 +218,9 @@ export default function Dashboard() {
 //         <Card title="Новые нарушения">
 //           {alerts.length ? <AlertList items={alerts} /> : <p className="text-muted">Нет новых нарушений</p>}
 //         </Card>
-//         <RecommendationsCard items={recs} loading={!ready} />
+//         {showRecs && <RecommendationsCard items={recs} loading={!ready} />}
 //       </div>
 //     </>
 //   )
 // }
+
