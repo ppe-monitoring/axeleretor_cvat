@@ -1,0 +1,46 @@
+person_model: yolov8n.pt
+ppe_model: ppe_v2.pt
+model_version: yolov8n-ppe-v2
+tracker: bytetrack.yaml
+imgsz: 640
+iou: 0.5
+person_conf: 0.3
+ppe_conf: 0.25
+ppe_class_conf: {}
+stream_fps: 10
+
+items:
+  helmet:
+    positive: Hardhat
+    negative: NO-Hardhat
+    code: NO_HELMET
+    region: [0.0, 0.40]
+  vest:
+    positive: Safety Vest
+    negative: NO-Safety Vest
+    code: NO_VEST
+    region: [0.10, 0.75]
+  gloves:
+    positive: Glove
+    negative: NO-Glove
+    code: NO_GLOVES
+    region: [0.15, 0.95]
+
+rules:
+  window: 30
+  min_frames: 15
+  neg_rate_min: 0.3
+  pos_rate_max: 0.15
+  min_containment: 0.5
+  min_person_height_frac: 0.15
+  absence_enabled:
+    helmet: true
+    vest: true
+    gloves: false
+
+events:
+  interval_s: 2
+  summary_interval_s: 60
+
+output_dir: outputs_tracking
+log_file: logs/track.log
